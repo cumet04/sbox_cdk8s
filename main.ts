@@ -8,9 +8,15 @@ class MyChart extends Chart {
 
     new WebService(this, "hello", {
       image: "paulbouwer/hello-kubernetes:1.7",
+      hostname: "hello.cdk8s.example.com",
       replicas: 2,
     });
-    new WebService(this, "ghost", { image: "ghost", containerPort: 2368 });
+
+    new WebService(this, "ghost", {
+      image: "ghost",
+      hostname: "ghost.cdk8s.example.com",
+      containerPort: 2368,
+    });
   }
 }
 

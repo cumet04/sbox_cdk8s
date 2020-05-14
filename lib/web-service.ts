@@ -1,5 +1,5 @@
 import { Construct, Node } from "constructs";
-import { Deployment, Service, IntOrString } from "../imports/k8s";
+import { Deployment, Service, Ingress, IntOrString } from "../imports/k8s";
 
 export interface WebServiceOptions {
   /**
@@ -15,32 +15,34 @@ export interface WebServiceOptions {
   readonly replicas?: number;
 
   /**
-   * External port.
-   *
-   * @default 80
-   */
-  readonly port?: number;
-
-  /**
    * Internal port.
    *
    * @default 8080
    */
   readonly containerPort?: number;
+
+  /**
+   * Domain of virtual host.
+   */
+  readonly hostname: string;
 }
 
 export class WebService extends Construct {
   constructor(scope: Construct, ns: string, options: WebServiceOptions) {
     super(scope, ns);
 
-    const port = options.port || 80;
+    const port = 80;
     const containerPort = options.containerPort || 8080;
     const label = { app: Node.of(this).uniqueId };
 
-    new Service(this, "service", {
+    const service = new Service(this, "service", {
       spec: {
-        type: "LoadBalancer",
-        ports: [{ port, targetPort: IntOrString.fromNumber(containerPort) }],
+        ports: [
+          {
+            port,
+            targetPort: IntOrString.fromNumber(containerPort),
+          },
+        ],
         selector: label,
       },
     });
@@ -63,6 +65,27 @@ export class WebService extends Construct {
             ],
           },
         },
+      },
+    });
+
+    new Ingress(this, "ingress", {
+      spec: {
+        rules: [
+          {
+            host: options.hostname,
+            http: {
+              paths: [
+                {
+                  path: "/",
+                  backend: {
+                    serviceName: service.name,
+                    servicePort: port,
+                  },
+                },
+              ],
+            },
+          },
+        ],
       },
     });
   }
